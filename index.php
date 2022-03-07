@@ -647,7 +647,7 @@ if(isset($_REQUEST["extrair"])){
                 $get_usuario = $data->find(
                     "SELECT 
 
-                    u.nombre,u.apellido,u.n_cliente,
+                    u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade
                     onu.name as pacote,
                     olt.ip,
                     r.wifi_ssid,r.wifi_password,r.wlan_channel,r.wlan_mode, r.type_network,r.wlan_frequency,r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2,
@@ -663,7 +663,13 @@ if(isset($_REQUEST["extrair"])){
                     "
                 );
 
+                // gerar csv de dados exspecificos da pessoa
+                $arq_person = fopen("./csv/extract_person".date("Y-m-d-H-i-s").".csv", "a");
+                fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
+
                 foreach($get_usuario as $u){
+
+                    fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["tel_number1"]} - {$u["tel_number2"]}",$u["cidade"],$u["direccion"],""]);
 
                     /**
                      * Get ID Olt
@@ -690,58 +696,11 @@ if(isset($_REQUEST["extrair"])){
                     /**
                      * API: ispmanager/activity
                      * Cadastro de ativacao
-                     * Payloads: 
-                     * {
-                     *  "contract":"12742",
-                     *  "oltId":9,
-                     *  "onuDescription":"Banco_Credicoop",
-                     *  "osNumber":"12742",
-                     *  "router":
-                     *  {
-                     *      "authentication":"AUTO",
-                     *      "password":"credicoop-",
-                     *      "username":"credicoop"
-                     *   },
-                     *   "servicePackageId":20,
-                     *   "telephonies":[],
-                     *   "wifi":
-                     *      {
-                     *          "ssid2G":"Institucional",
-                     *          "password2G":"269015450350",
-                     *          "ssid5G":"Institucional_5G",
-                     *          "password5G":"269015450350",
-                     *          "wifiParameters2G":
-                     *            {
-                     *              "wifiRegion":"UNITED_STATES",
-                     *              "wifiMode":"B_G_N",
-                     *              "wifiChannel":"AUTO",
-                     *              "wifiChannelWidth":"_20",
-                     *              "wifiIndex":1,
-                     *              "wifiSecurityType":"WPA_WPA2_PSK",
-                     *              "wpaVersion":"AUTO",
-                     *              "wpaEncryption":"AES"
-                     *            },
-                     *          "wifiParameters5G":
-                     *            {
-                     *              "wifiRegion":"ARGENTINA",
-                     *              "wifiMode":"AC",
-                     *              "wifiChannel":"AUTO",
-                     *              "wifiChannelWidth":"_80",
-                     *              "wifiIndex":2,
-                     *              "wifiSecurityType":"WPA_WPA2_PSK",
-                     *              "wpaVersion":"AUTO",
-                     *              "wpaEncryption":"AES_TKIP"
-                     *            }
-                     *        }
-                     *  }
+                     * 
                      */
                     $set_ativacao = new Api($ip_host,"ispmanager/activity",$token,"POST");
                     $set_ativacao->set("contract",$u["n_cliente"]);
-
-                    $set_ativacao->set("oltId",10);
-
-                    //$set_ativacao->set("oltId",$olt["content"][0]["id"]); // mudar aqui para realizar testes sem estar na vpn do cliente
-                    
+                    $set_ativacao->set("oltId",$olt["content"][0]["id"]); // mudar aqui para realizar testes sem estar na vpn do cliente                    
                     $set_ativacao->set("onuDescription","{$u["nombre"]} {$u["apellido"]}"); // truncar para 30 caracter max
                     
                     $set_ativacao->set("osNumber",$u["n_cliente"]);
@@ -758,6 +717,7 @@ if(isset($_REQUEST["extrair"])){
                     $set_ativacao->set("telephonies",[]);
                     
                     /*
+                    // Aqui atribui tel do usuario
                     $set_ativacao->set(
                         "telephonies",
                         array(
@@ -784,12 +744,14 @@ if(isset($_REQUEST["extrair"])){
                     $response["DATA"] = $set_ativacao->get();
                     $info["CENTRAL_ATIVACAO"][] = $response;
                 }
+
+                fclose($arq_person);
             }
         }
     }    
 }
 
-// gera log na pasta log.
+// gerar log na pasta log.
 $fp = fopen("./log/log-".date("Y-m-d-H-i-s").".json", "a");
 $escreve = fwrite($fp, json_encode($info));
 fclose($fp);
