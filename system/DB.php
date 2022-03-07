@@ -1,9 +1,5 @@
 <?php
 
-use PDO;
-use PDOException;
-use Exception;
-
 class Connections{
 
     public static $instance;
@@ -15,18 +11,18 @@ class Connections{
 
     }
 
-    public static function instance(): ?PDO
+    public static function instance(): ?\PDO
     {
         try {
-            self::$instance = new PDO("mysql:host=".self::$param["host_db"].";dbname=".self::$param["schema_db"].";port=3306",self::$param["user_db"],self::$param["password_db"],
+            self::$instance = new \PDO("mysql:host=".self::$param["host_db"].";dbname=".self::$param["schema_db"].";port=3306",self::$param["user_db"],self::$param["password_db"],
                 [
-                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8",
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-                    PDO::ATTR_CASE => PDO::CASE_NATURAL
+                    \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8",
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ,
+                    \PDO::ATTR_CASE => \PDO::CASE_NATURAL
                 ]
             );
-        } catch (PDOException $e) {
+        } catch (\PDOException $e) {
             self::$error = $e;
             print_r($e);
         }
@@ -34,7 +30,7 @@ class Connections{
         return self::$instance;
     }
 
-    public static function error(): ?PDOException
+    public static function error(): ?\PDOException
     {
         return self::$error;
     }
@@ -59,8 +55,8 @@ class Operaction{
                 return null;
             }
 
-            return $state->fetchAll(PDO::FETCH_ASSOC);
-        }catch (Exception $e){
+            return $state->fetchAll(\PDO::FETCH_ASSOC);
+        }catch (\Exception $e){
             print_r($e);
             return $e;
         }

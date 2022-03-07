@@ -1,11 +1,10 @@
 <?php
-
 require_once(__DIR__."/system/DB.php");
 require_once(__DIR__."/system/Api.php");
 
 $info = array();
-$limit=10;
-$offset=20;
+$limit=$_REQUEST["limit"]??100;
+$offset=$_REQUEST["offset"]??0;
 
 if(isset($_REQUEST["extrair"])){
 
@@ -597,7 +596,7 @@ if(isset($_REQUEST["extrair"])){
                 $get_usuario = $data->find(
                     "SELECT 
 
-                    u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade
+                    u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
                     onu.name as pacote,
                     olt.ip,
                     r.wifi_ssid,r.wifi_password,r.wlan_channel,r.wlan_mode, r.type_network,r.wlan_frequency,r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2,
@@ -614,7 +613,7 @@ if(isset($_REQUEST["extrair"])){
                 );
 
                 // gerar csv de dados exspecificos da pessoa
-                $arq_person = fopen("./csv/extract_person".date("Y-m-d-H-i-s").".csv", "a");
+                $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
                 fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
 
                 foreach($get_usuario as $u){
@@ -711,6 +710,20 @@ fclose($fp);
 <form action="" method="post">
     <input type="hidden" name="date_now" id="date_now" readonly>
     <table>
+        <tr>
+            <td colspan="3">
+                <h3>Informe os dados de conexão com o Conscius Manager</h3>
+                <p>Local onde será importado os dados</p>
+            </td>
+        </tr>
+        <tr>
+            <th>API/IP Host</th>
+            <th colspan="2">Token (HEADER: Authorization)</th>
+        </tr>
+        <tr>
+            <td><input type="text" name="ip_host" required value="172.27.78.212"></td>
+            <td colspan="2"><input type="text" name="token" required value="<?=$_REQUEST["token"];?>"></td>
+        </tr>
         <tr><td colspan="3"><hr></td></tr>
         <tr>
             <td colspan="3">
@@ -730,7 +743,25 @@ fclose($fp);
         </tr>
         <tr>
             <td colspan="3">
-                <br>
+                <p>Informe quantidade de registros que serão extraídos</p>
+            </td>
+        </tr>
+        <tr>
+            <th>LIMIT</th>
+            <th>OFFSET</th>
+        </tr>
+        <tr>
+            <td><input type="text" name="limit" required value="100"></td>
+            <td><input type="text" name="offset" required value="0"></td>
+        </tr>
+        <tr><td colspan="3"><hr></td></tr>
+        <tr>
+            <td colspan="3">
+                <h3>Selecione quais dados serão extraidos do CMap</h3>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
                 <p>Cadastro de Equipamento</p>
 
                 <input type="radio" name="dados" id="dados_olt" value="olt">
@@ -765,24 +796,9 @@ fclose($fp);
                 <label>CABOs</label-->
             </td>
         </tr>
-        <tr><td colspan="3"><hr></td></tr>
+        <tr><td colspan="3"><hr></td></tr>       
         <tr>
-            <td colspan="3">
-                <h3>Informe os dados de conexão com o Conscius Manager</h3>
-                <p>Local onde será importado os dados</p>
-            </td>
-        </tr>
-        <tr>
-            <th>API/IP Host</th>
-            <th colspan="2">Token (HEADER: Authorization)</th>
-        </tr>
-        <tr>
-            <td><input type="text" name="ip_host" required value="172.27.78.212"></td>
-            <td colspan="2"><input type="text" name="token" required value="<?=$_REQUEST["token"];?>"></td>
-        </tr>
-        <tr><td colspan="3"><hr></td></tr>
-        <tr>
-            <td><button type="submit" name="extrair">Extrair Dados</button></td>
+            <td><button type="submit" name="extrair">EXTRAIR DADOS</button></td>
         </tr>
     </table>
 </form>
