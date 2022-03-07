@@ -473,56 +473,6 @@ if(isset($_REQUEST["extrair"])){
                     /**
                      * API: ispmanager/internet-service
                      * Cadastro de configurações de serviço de internet
-                     * Payloads: 
-                     * {
-                     *      "name"=>"25M",
-                     *      "vlanId"=>5,
-                     *      "maxUpstream"=>25096,
-                     *      "maxDownstream"=>25096,
-                     *      "ports"=>[1,2,3,4],
-                     *      "routerService"=>{
-                     *          "wan"=>{
-                     *              "wanType"=>"PPPOE",
-                     *              "addressProtocolCombination"=>"IPv4_AND_IPv6",
-                     *              "dnsProxyAddressProtocol"=>"DISABLED",
-                     *              "dnsList"=>[]
-                     *          },
-                     *          "lan"=>{
-                     *              "lanIpAddress"=>"192.168.1.1",
-                     *              "networkPrefixSize"=>24,
-                     *              "dhcpEnabled"=>true,
-                     *              "dhcpServerStart"=>"192.168.1.2",
-                     *              "dhcpServerEnd"=>"192.168.1.254",
-                     *              "leasedTime"=>86400,
-                     *              "dnsProxyEnabled"=>true
-                     *          },
-                     *          "wifi"=>{
-                     *              "wifi2G"=>{
-                     *                  "wifiIndex"=>1,
-                     *                  "wifiRegion"=>"BRAZIL",// Utilizar EUA - argentina
-                     *                  "wifiMode"=>"B_G_N",
-                     *                  "wifiChannel"=>"AUTO",
-                     *                  "wifiChannelWidth"=>"_20",
-                     *                  "wifiSecurityType"=>"WPA_WPA2_PSK",
-                     *                  "wpaVersion"=>"AUTO",
-                     *                  "wpaEncryption"=>"AES"
-                     *              },
-                     *              "wifi5G"=>{
-                     *                  "wifiIndex"=>2,
-                     *                  "wifiRegion"=>"BRAZIL", //Argentina
-                     *                  "wifiMode"=>"AC",
-                     *                  "wifiChannel"=>"AUTO",
-                     *                  "wifiChannelWidth"=>"_80",
-                     *                  "wifiSecurityType"=>"WPA_WPA2_PSK",
-                     *                  "wpaVersion"=>"AUTO",
-                     *                  "wpaEncryption"=>"AES_TKIP"
-                     *              }
-                     *          }
-                     *      },
-                     *      "bridgeService"=>{
-                     *          "enabled"=>false
-                     *      }
-                     * }
                      */
 
                     $set_internet = new Api($ip_host,"ispmanager/internet-service",$token,"POST");
