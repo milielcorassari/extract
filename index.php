@@ -191,7 +191,7 @@ if(isset($_REQUEST["extrair"])){
                     $set_cto->set("operationalStatus","PENDING");
                     $set_cto->set("origin","MANUAL");
                     $set_cto->set("referencePoint","");
-                    $set_cto->set("sensed",false);
+                    //$set_cto->set("sensed",false);
                     $set_cto->set("status","ACTIVE");
                     $set_cto->set("type",193);
                     $set_cto->set("sensors",[]);
