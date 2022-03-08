@@ -209,12 +209,13 @@ if(isset($_REQUEST["extrair"])){
 
                 $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos",$token,"GET");
                 $response_cto = $get_cto->conecta();
+                $response_cto = array_slice($response_cto,$offset,$limit); // controla o limit offset do array da CTO
 
                 //get nap.codigo
                 foreach($response_cto as $cto){
                     
                     $get_onus = $data->find(
-                        "SELECT
+                        "SELECT * 
                         (select direccion from aprosftthdata.usuarios where id_usuarios = r_onu.id_usuarios) as address,
                         o_type.name as name_type,
                         r_onu.mac,
@@ -230,50 +231,55 @@ if(isset($_REQUEST["extrair"])){
                         left join aprosftthdata.plantel_exterior_ftth_nap as nap 
                             on nap.id_plantel_exterior_ftth_nap = 
                             (select id_plantel_exterior_ftth_nap from aprosftthdata.plantel_exterior_ftth_nap_salidas where id_plantel_exterior_ftth_nap_salidas = troncal_nap.id_plantel_exterior_ftth_nap_salidas)
-                        where nap.codigo = '{$cto["name"]} LIMIT {$limit} OFFSET {$offset}'
+                        where nap.codigo = '{$cto["name"]}'
                         "
                     );
 
-                    foreach($get_onus as $onu){
+                    if(is_array($get_onus)){
+                        foreach($get_onus as $onu){
                         
-                        $onu_type = 0;
-                        $onu_connectorType = null;
-                        $get_onu_type = new Api($ip_host,"ospmanager/onu-types",$token,"GET");
-                        $response_onu_type = $get_onu_type->conecta();
+                            $onu_type = 0;
+                            $onu_connectorType = null;
+                            $get_onu_type = new Api($ip_host,"ospmanager/onu-types",$token,"GET");
+                            $response_onu_type = $get_onu_type->conecta();
+    
+                            foreach($response_onu_type as $t){
+                                if($onu["name_type"] == $t["model"]){
 
-                        foreach($response_onu_type as $t){
-                            if($onu["name_type"] == $t["model"]){
-                                $onu_type = $t["id"];
-                                $onu_connectorType = $t["connectorType"];
+                                    $onu_type = $t["id"];
+                                    $onu_connectorType = $t["connectorType"];
+
+                                    $set_onu = new Api($ip_host,"ospmanager/projects/{$existe_project}/onus",$token,"POST");
+                                    $set_onu->set("id",null);
+                                    $set_onu->set("name","{$onu["mac"]}");
+                                    $set_onu->set("latitude",floatval($onu["latitude"]));
+                                    $set_onu->set("longitude",floatval($onu["longitude"]));
+                                    $set_onu->set("address",$onu["address"]);
+                                    $set_onu->set("connectorType",null);
+                                    $set_onu->set("createdDate",$_REQUEST["date_now"]);
+                                    $set_onu->set("lastModifiedDate",null);
+                                    $set_onu->set("type",$onu_type); // Id tipo ONU
+                                    $set_onu->set("gponSerialNumber",""); // N serial ONU
+                                    $set_onu->set("macAddress",$onu["mac"]);
+                                    $set_onu->set("managementState","UNMANAGED");
+                                    $set_onu->set("administrativeState","ACTIVE");
+                                    $set_onu->set("operationalState","ACTIVE");
+                                    $set_onu->set("description",""); // Nome de modelo
+                                    $set_onu->set("note","");
+                                    $set_onu->set("referencePoint","");
+                                    $set_onu->set("contractId",""); // se selectedOnu.administrativeState != 'PLANNING'
+                                    $set_onu->set("georeferenced",true);
+            
+                                    $response = $set_onu->conecta();
+            
+                                    $response["DATA"] = $set_onu->get();
+                                    $info["ONUs"][] = $response;
+
+                                    break;
+                                }
                             }
                         }
-
-                        $set_onu = new Api($ip_host,"ospmanager/projects/{$existe_project}/onus",$token,"POST");
-                        $set_onu->set("id",null);
-                        $set_onu->set("name","{$onu["mac"]}");
-                        $set_onu->set("latitude",floatval($onu["latitude"]));
-                        $set_onu->set("longitude",floatval($onu["longitude"]));
-                        $set_onu->set("address",$onu["address"]);
-                        $set_onu->set("connectorType",null);
-                        $set_onu->set("createdDate",$_REQUEST["date_now"]);
-                        $set_onu->set("lastModifiedDate",null);
-                        $set_onu->set("type",$onu_type); // Id tipo ONU
-                        $set_onu->set("gponSerialNumber",""); // N serial ONU
-                        $set_onu->set("macAddress",$onu["mac"]);
-                        $set_onu->set("managementState","UNMANAGED");
-                        $set_onu->set("administrativeState","ACTIVE");
-                        $set_onu->set("operationalState","ACTIVE");
-                        $set_onu->set("description",""); // Nome de modelo
-                        $set_onu->set("note","");
-                        $set_onu->set("referencePoint","");
-                        $set_onu->set("contractId",""); // se selectedOnu.administrativeState != 'PLANNING'
-                        $set_onu->set("georeferenced",true);
-
-                        $response = $set_onu->conecta();
-
-                        $response["DATA"] = $set_onu->get();
-                        $info["ONUs"][] = $response;
-                    }
+                    }                    
                 }             
             }
 
