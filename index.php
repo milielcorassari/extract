@@ -288,6 +288,7 @@ if(isset($_REQUEST["extrair"])){
 
                 $get_onus = new Api($ip_host,"ospmanager/projects/{$existe_project}/onus",$token,"GET");
                 $response_onus = $get_onus->conecta();
+                $response_onus = array_slice($response_onus,$offset,$limit); // controla o limit offset do array da ONUs
 
                 foreach($response_onus as $onu){
 
@@ -320,7 +321,8 @@ if(isset($_REQUEST["extrair"])){
                             
                             if($sp["name"] == $in["splliter"]){    
                                 foreach($sp["ports"] as $pt){
-                                    if(strpos($pt["name"], "output port {$in["saida_nap"]}")){
+
+                                    if(strpos($pt["name"], "output port ".(intval($in["saida_nap"]) - 1))){
                                         //get port
                                         $ports[] = array(
                                             "connector"=>false,
@@ -383,6 +385,7 @@ if(isset($_REQUEST["extrair"])){
                     }
 
                     $response["DATA"] = $set_fiber->get();
+                    $response["DATA"]["ONU"] = $onu["name"];
                     $info["FIBERs"][] = $response;
                 }                
             }
