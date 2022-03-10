@@ -296,21 +296,28 @@ if(isset($_REQUEST["extrair"])){
                     $ports = array();
                     $port_output = $onu["ports"][0]["id"];
                     $port_input = 0;
+                    
+                    $query = "SELECT
+                    s.codigo as splliter,
+                    n.codigo as nap,
+                    n_saida.salida as saida_nap
+                    FROM aprosftthdata.reservation_onu as r
+                    inner join aprosftthdata.cross_port as p on p.id_cross_port = r.id_cross_port
+                    inner join aprosftthdata.plantel_exterior_ftth_splitter_salidas as s_saida on s_saida.id_plantel_exterior_ftth_splitter_salidas = p.id_splitter_salidas
+                    inner join aprosftthdata.plantel_exterior_ftth_splitter as s on s.id_plantel_exterior_ftth_splitter = s_saida.id_plantel_exterior_ftth_splitter
+                    inner join aprosftthdata.plantel_exterior_ftth_troncales_nap as t_nap on t_nap.id_plantel_exterior_ftth_troncales_nap = p.id_plantel_exterior_ftth_troncales_nap
+                    inner join aprosftthdata.plantel_exterior_ftth_nap_salidas as n_saida on n_saida.id_plantel_exterior_ftth_nap_salidas = t_nap.id_plantel_exterior_ftth_nap_salidas
+                    inner join aprosftthdata.plantel_exterior_ftth_nap as n on n.id_plantel_exterior_ftth_nap = n_saida.id_plantel_exterior_ftth_nap ";
 
-                    $get_port_input = $data->find(
-                        "SELECT
-                        s.codigo as splliter,
-                        n.codigo as nap,
-                        n_saida.salida as saida_nap
-                        FROM aprosftthdata.reservation_onu as r
-                        inner join aprosftthdata.cross_port as p on p.id_cross_port = r.id_cross_port
-                        inner join aprosftthdata.plantel_exterior_ftth_splitter_salidas as s_saida on s_saida.id_plantel_exterior_ftth_splitter_salidas = p.id_splitter_salidas
-                        inner join aprosftthdata.plantel_exterior_ftth_splitter as s on s.id_plantel_exterior_ftth_splitter = s_saida.id_plantel_exterior_ftth_splitter
-                        inner join aprosftthdata.plantel_exterior_ftth_troncales_nap as t_nap on t_nap.id_plantel_exterior_ftth_troncales_nap = p.id_plantel_exterior_ftth_troncales_nap
-                        inner join aprosftthdata.plantel_exterior_ftth_nap_salidas as n_saida on n_saida.id_plantel_exterior_ftth_nap_salidas = t_nap.id_plantel_exterior_ftth_nap_salidas
-                        inner join aprosftthdata.plantel_exterior_ftth_nap as n on n.id_plantel_exterior_ftth_nap = n_saida.id_plantel_exterior_ftth_nap
-                        where r.mac = '{$onu["name"]}' "
-                    );
+                    // verifica se vai importar por mac addres especificos
+                    if(isset($_REQUEST["array_onu"]) && !empty($_REQUEST["array_onu"])){
+                        $name_onus = explode(",",$_REQUEST["array_onu"]);
+                        $query .= "where r.mac in('".implode("','",$name_onus)."') ";
+                    }else{
+                        $query .= "where = '{$onu["name"]}' ";
+                    }
+
+                    $get_port_input = $data->find($query);
     
                     foreach($get_port_input as $in){
 
@@ -770,7 +777,7 @@ fclose($fp);
             </td>
         </tr>
         <tr>
-            <td colspan="3">
+            <td colspan="4">
                 <p>Cadastro de Equipamento</p>
 
                 <input type="radio" name="dados" id="dados_olt" value="olt">
@@ -786,6 +793,10 @@ fclose($fp);
 
                 <input type="radio" name="dados" id="dados_onu" value="fibra">
                 <label>Conectar Fibra CTO - ONU</label>
+
+                <p>Informar MAC das ONUs que deseja conectar a fibra separados por virgula</p>
+                <input type="text" name="array_onu" id="array_onu" value="">
+                <hr>
 
                 <p>Configurações de VLANs, serviços, cadastros de pacotes e ativação</p>
 
