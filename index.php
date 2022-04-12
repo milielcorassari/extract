@@ -6,7 +6,17 @@ $info = array();
 $limit=$_REQUEST["limit"]??100;
 $offset=$_REQUEST["offset"]??0;
 
-if(isset($_REQUEST["extrair"])){
+/** definicao de parametros de-para */
+$param_depara = array(
+    "PLAN100/10" => array(
+        "172.15.0.3" => "OLT1_Int_PPP_250_271",
+        "172.15.0.4" => "OLT2_Int_PPP_251_272",
+        "172.15.0.5" => "OLT3_Int_PPP_252_273"
+    )
+);
+/** */
+
+if(isset($_REQUEST["importar"])){
 
     $token = $_REQUEST["token"];
     $ip_host = $_REQUEST["ip_host"];
@@ -602,7 +612,7 @@ if(isset($_REQUEST["extrair"])){
                     $info["SERVICO_PACOTE"][] = $response;
                     /** */                    
                 }                
-            } 
+            }
             
             if($_REQUEST["dados"] == "ativacao"){
 
@@ -628,13 +638,9 @@ if(isset($_REQUEST["extrair"])){
                     "
                 );
 
-                // gerar csv de dados exspecificos da pessoa
-                $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
-                fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
-
                 foreach($get_usuario as $u){
 
-                    fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["tel_number1"]} - {$u["tel_number2"]}",$u["cidade"],$u["direccion"],""]);
+                    $pacote = $u["pacote"];
 
                     /**
                      * Get ID Olt
@@ -645,11 +651,22 @@ if(isset($_REQUEST["extrair"])){
                     /**
                      * Comparar pacotes DE-PARA
                      */
+                    foreach($param_depara as $key=>$value){
+                        if($key==$pacote){                            
+                            foreach($value as $ind=>$pack){
+                                if($ind==$u["ip"]){
+                                    $pacote = $pack;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                     /** */
 
                     /**
                      * Get pacote
                      */
-                    $get_pacote = new Api($ip_host,"ispmanager/servicepackage?name={$u["pacote"]}",$token,"GET");
+                    $get_pacote = new Api($ip_host,"ispmanager/servicepackage?name={$pacote}",$token,"GET");
                     $pacote = $get_pacote->conecta();
 
                     /**
@@ -667,7 +684,6 @@ if(isset($_REQUEST["extrair"])){
                     $set_ativacao->set("contract",$u["n_cliente"]);
                     $set_ativacao->set("oltId",$olt["content"][0]["id"]); // mudar aqui para realizar testes sem estar na vpn do cliente                    
                     $set_ativacao->set("onuDescription","{$u["nombre"]} {$u["apellido"]}"); // truncar para 30 caracter max
-                    
                     $set_ativacao->set("osNumber",$u["n_cliente"]);
                     $set_ativacao->set(
                         "router",
@@ -678,11 +694,7 @@ if(isset($_REQUEST["extrair"])){
                         )
                     );
                     $set_ativacao->set("servicePackageId",$pacote["content"][0]["id"]);
-
-                    $set_ativacao->set("telephonies",[]);
-                    
-                    /*
-                    // Aqui atribui tel do usuario
+                    //$set_ativacao->set("telephonies",[]);
                     $set_ativacao->set(
                         "telephonies",
                         array(
@@ -691,8 +703,6 @@ if(isset($_REQUEST["extrair"])){
                             "username"=>$u["tel_number1"] ?? $u["tel_number2"]
                         )
                     );
-                    */
-
                     $set_ativacao->set(
                         "wifi",
                         array(
@@ -709,11 +719,85 @@ if(isset($_REQUEST["extrair"])){
                     $response["DATA"] = $set_ativacao->get();
                     $info["CENTRAL_ATIVACAO"][] = $response;
                 }
-
-                fclose($arq_person);
             }
         }
     }    
+}
+
+if(isset($_REQUEST["extrair"])){
+    
+    /** Extrai dados de cliente do CMAP */
+    /**
+     * get Usuarios no CMAP
+     */
+    $get_usuario = $data->find(
+        "SELECT 
+
+        u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
+        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2
+        
+        FROM aprosftthdata.usuarios as u
+        
+        left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
+        "
+    );
+
+    // gerar csv de dados exspecificos da pessoa
+    $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
+    fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
+
+    foreach($get_usuario as $u){
+        fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["tel_number1"]} - {$u["tel_number2"]}",$u["cidade"],$u["direccion"],""]);
+    }
+
+    $info["EXTRACT_CLIENT"][] = $get_usuario;
+
+    fclose($arq_person);
+    /***************************************** */
+
+    /** Extrai dados de Usuario no CMAP */
+    /**
+     * get Usuarios no CMAP
+     */
+    $get_usuario = $data->find(
+        "SELECT 
+
+        (SELECT name from aprosftthdata.onu_type where id_onu_profile_type = onu.id_onu_profile_type limit 1) as model_onu,
+        r.mac,
+        olt.ip as olt_ip, olt.name as olt_name,olt.id_olt,-- slot,port
+        u.nombre,u.apellido,u.direccion,
+        -- saida_nap, armario
+        u.n_cliente,onu.name as perfil,
+        pppoe.username as pppoe_user,pppoe.password as pppoe_pass,
+        r.wifi_ssid,r.wifi_password,
+        dmz.ipaddr as dmz_ip,
+        fowarding.external_port_from,fowarding.external_port_to,fowarding.internal_port_from,fowarding.internal_port_to,
+        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2
+        
+        FROM aprosftthdata.usuarios as u
+        
+        left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
+        left join aprosftthdata.onu_profile as onu on onu.id_onu_profile = r.id_onu_profile
+        left join aprosftthdata.olt as olt on olt.id_olt in(select distinct id_olt from aprosftthdata.onu_profile_olt where id_onu_profile = onu.id_onu_profile)
+        left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
+        left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
+        left join aprosftthdata.forwarding_configuration as fowarding on fowarding.id_reservation_onu = r.id_reservation_onu
+        LIMIT {$limit} OFFSET {$offset}
+        "
+    );
+
+    // gerar csv de dados exspecificos da pessoa
+    $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
+    fputcsv($arq_person , ["Modelo de ONU","MAC","OLT","Slot","Port","Id","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Port-External-Fowarding","Port-Internal-Fowarding","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
+
+    foreach($get_usuario as $u){
+        fputcsv($arq_person,[$u["model_onu"],$u["mac"],$u["olt_name"],"","",$u["olt_ip"],$u["nombre"],$u["apellido"],$u["direccion"],"","",$u["n_cliente"],$u["perfil"],"PPPoE_User",$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$u["external_port_from"]." - ".$u["external_port_to"],$u["internal_port_from"]." - ".$u["internal_port_to"],$u["tel_number1"],$u["tel_number2"],$u["tel_pwd1"],$u["tel_pwd2"]]);
+    }
+
+    $info["EXTRACT_CLIENT"][] = $get_usuario;
+
+    fclose($arq_person);
+    /***************************** */
 }
 
 // gerar log na pasta log.
@@ -808,16 +892,11 @@ fclose($fp);
 
                 <input type="radio" name="dados" id="dados_ativacao" value="ativacao">
                 <label>Central de Ativacao</label>
-
-                <!--input type="radio" name="dados" id="dados_ceo" value="ceo">
-                <label>CEOs</label>
-
-                <input type="radio" name="dados" id="dados_cabo" value="cabo">
-                <label>CABOs</label-->
             </td>
         </tr>
         <tr><td colspan="3"><hr></td></tr>       
         <tr>
+            <td><button type="submit" name="importar">IMPORTAR DADOS</button></td>
             <td><button type="submit" name="extrair">EXTRAIR DADOS</button></td>
         </tr>
     </table>
