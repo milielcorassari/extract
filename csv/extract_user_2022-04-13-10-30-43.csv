@@ -1,0 +1,4 @@
+"Modelo de ONU",MAC,OLT,Slot,Port,Id,Nome,Sobrenome,Endereço,"Saída NAP",Armário,"Nr. Cliente",Perfil,PPPoE_User,PPPoE_Psswd,WIFI_SSID,WIFI_PSSWD,DMZ_IP,Port-External-Fowarding,Port-Internal-Fowarding,Tel_user1,Tel_Passwd1,Tel_user2,Tel_Passwd2
+FK-ONT-G420W,FISA4b12dd70,OLT_SALTO,3,1,172.15.0.3,Banco,Credicoop,"Buenos Aires 504",8,CE-SL-11,12742,PLAN100/10,PPPoE_User,credicoop,credicoop-,Institucional,269015450350,," - "," - ",,,,
+FK-ONT-G420W,FISA4b12aa50,OLT_SALTO,2,4,172.15.0.3,"CCTV SA","CCTV S.A.","Belgrano 461",1,CE-SL-10,8113,PLAN100/10,PPPoE_User,cctvsa,cctvsa-,BBTSALTO,ortigoza,192.168.1.108,"161 - 161","161 - 161",14124124,,14124124,
+FK-ONT-G420W,FISA4b12ae40,OLT_SALTO,3,3,172.15.0.3,Julio,Vitores,"Ramón Franco 88",1,CE-SL-15,30016,10Mb_2Mb,PPPoE_User,vitoresjuli,vitoresjuli-,_DIOS_,2901152410,," - "," - ",,,,

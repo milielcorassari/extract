@@ -6,6 +6,13 @@ $info = array();
 $limit=$_REQUEST["limit"]??100;
 $offset=$_REQUEST["offset"]??0;
 
+$param = array(
+    "host_db"=>$_REQUEST["host"] ?? "",
+    "schema_db"=>"aprosftthdata",
+    "user_db"=>$_REQUEST["user"] ?? "",
+    "password_db"=>$_REQUEST["password"] ?? ""
+);
+
 /** definicao de parametros de-para */
 $param_depara = array(
     "PLAN100/10" => array(
@@ -20,13 +27,6 @@ if(isset($_REQUEST["importar"])){
 
     $token = $_REQUEST["token"];
     $ip_host = $_REQUEST["ip_host"];
-    $param = array(
-        "host_db"=>$_REQUEST["host"],
-        "schema_db"=>"aprosftthdata",
-        "user_db"=>$_REQUEST["user"],
-        "password_db"=>$_REQUEST["password"]
-    );
-
     $project = new Api($ip_host,"ospmanager/projects",$token,"GET");
     $project_get = $project->conecta();
     $existe_project = false;
@@ -724,36 +724,39 @@ if(isset($_REQUEST["importar"])){
     }    
 }
 
-if(isset($_REQUEST["extrair"])){
-    
+if(isset($_REQUEST["extrair_client"])){
+
+    $data = new Operaction($param);
+
     /** Extrai dados de cliente do CMAP */
     /**
      * get Usuarios no CMAP
      */
     $get_usuario = $data->find(
-        "SELECT 
-
+        "SELECT
         u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
-        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2
-        
-        FROM aprosftthdata.usuarios as u
-        
+        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2        
+        FROM aprosftthdata.usuarios as u        
         left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
+        LIMIT {$limit} OFFSET {$offset}
         "
     );
 
     // gerar csv de dados exspecificos da pessoa
-    $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
+    $arq_person = fopen("./csv/extract_client_".date("Y-m-d-H-i-s").".csv", "a");
     fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
 
     foreach($get_usuario as $u){
         fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["tel_number1"]} - {$u["tel_number2"]}",$u["cidade"],$u["direccion"],""]);
     }
 
-    $info["EXTRACT_CLIENT"][] = $get_usuario;
-
     fclose($arq_person);
     /***************************************** */
+}
+
+if(isset($_REQUEST["extrair_user"])){
+
+    $data = new Operaction($param);
 
     /** Extrai dados de Usuario no CMAP */
     /**
@@ -761,12 +764,11 @@ if(isset($_REQUEST["extrair"])){
      */
     $get_usuario = $data->find(
         "SELECT 
-
+        r.id_cross_port as id_cross_port,
         (SELECT name from aprosftthdata.onu_type where id_onu_profile_type = onu.id_onu_profile_type limit 1) as model_onu,
         r.mac,
-        olt.ip as olt_ip, olt.name as olt_name,olt.id_olt,-- slot,port
+        olt.ip as olt_ip, olt.name as olt_name,olt.id_olt,r.cardPon as slot,r.portPon as ports,
         u.nombre,u.apellido,u.direccion,
-        -- saida_nap, armario
         u.n_cliente,onu.name as perfil,
         pppoe.username as pppoe_user,pppoe.password as pppoe_pass,
         r.wifi_ssid,r.wifi_password,
@@ -782,19 +784,39 @@ if(isset($_REQUEST["extrair"])){
         left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
         left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
         left join aprosftthdata.forwarding_configuration as fowarding on fowarding.id_reservation_onu = r.id_reservation_onu
+        left join aprosftthdata.olt_board_ports as olt_ports on olt_ports.id_olt_board_ports = r.id_board_ports
+
         LIMIT {$limit} OFFSET {$offset}
         "
     );
 
     // gerar csv de dados exspecificos da pessoa
-    $arq_person = fopen("./csv/extract_person_".date("Y-m-d-H-i-s").".csv", "a");
+    $arq_person = fopen("./csv/extract_user_".date("Y-m-d-H-i-s").".csv", "a");
     fputcsv($arq_person , ["Modelo de ONU","MAC","OLT","Slot","Port","Id","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Port-External-Fowarding","Port-Internal-Fowarding","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
 
     foreach($get_usuario as $u){
-        fputcsv($arq_person,[$u["model_onu"],$u["mac"],$u["olt_name"],"","",$u["olt_ip"],$u["nombre"],$u["apellido"],$u["direccion"],"","",$u["n_cliente"],$u["perfil"],"PPPoE_User",$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$u["external_port_from"]." - ".$u["external_port_to"],$u["internal_port_from"]." - ".$u["internal_port_to"],$u["tel_number1"],$u["tel_number2"],$u["tel_pwd1"],$u["tel_pwd2"]]);
-    }
 
-    $info["EXTRACT_CLIENT"][] = $get_usuario;
+        $saida_nap = "";
+        $armario = "";
+
+        /** saida_nap, armario */
+        $get_split = $data->find(
+            "SELECT 
+            a.descripcion as armario,n.salida as salida_nap
+            FROM aprosftthdata.cross_port as c
+            left join aprosftthdata.plantel_exterior_ftth_troncales_nap as t on t.id_plantel_exterior_ftth_troncales_nap = c.id_plantel_exterior_ftth_troncales_nap
+            left join aprosftthdata.plantel_exterior_ftth_armarios as a on a.id_plantel_exterior_ftth_armarios = t.id_plantel_exterior_ftth_armarios
+            left join aprosftthdata.plantel_exterior_ftth_nap_salidas as n on n.id_plantel_exterior_ftth_nap_salidas = t.id_plantel_exterior_ftth_nap_salidas
+            where c.id_cross_port = {$u["id_cross_port"]}"
+        );
+
+        foreach($get_split as $na){
+            $saida_nap = $na["salida_nap"];
+            $armario = $na["armario"];
+        }
+
+        fputcsv($arq_person,[$u["model_onu"],$u["mac"],$u["olt_name"],$u["slot"],$u["ports"],$u["olt_ip"],$u["nombre"],$u["apellido"],$u["direccion"],$saida_nap,$armario,$u["n_cliente"],$u["perfil"],"PPPoE_User",$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$u["external_port_from"]." - ".$u["external_port_to"],$u["internal_port_from"]." - ".$u["internal_port_to"],$u["tel_number1"],$u["tel_number2"],$u["tel_pwd1"],$u["tel_pwd2"]]);
+    }
 
     fclose($arq_person);
     /***************************** */
@@ -822,7 +844,7 @@ fclose($fp);
         </tr>
         <tr>
             <td><input type="text" name="ip_host" required value="172.27.78.212"></td>
-            <td colspan="2"><input type="text" name="token" required value="<?=$_REQUEST["token"];?>"></td>
+            <td colspan="2"><input type="text" name="token" value="<?=$_REQUEST["token"];?>"></td>
         </tr>
         <tr><td colspan="3"><hr></td></tr>
         <tr>
@@ -897,7 +919,8 @@ fclose($fp);
         <tr><td colspan="3"><hr></td></tr>       
         <tr>
             <td><button type="submit" name="importar">IMPORTAR DADOS</button></td>
-            <td><button type="submit" name="extrair">EXTRAIR DADOS</button></td>
+            <td><button type="submit" name="extrair_client">EXTRAIR DADOS CLIENTE</button></td>
+            <td><button type="submit" name="extrair_user">EXTRAIR DADOS USUARIO</button></td>
         </tr>
     </table>
 </form>
