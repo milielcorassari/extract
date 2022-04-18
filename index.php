@@ -763,7 +763,9 @@ if(isset($_REQUEST["extrair_user"])){
      * get Usuarios no CMAP
      */
     $get_usuario = $data->find(
-        "SELECT 
+        "SELECT
+
+        r.id_reservation_onu,
         r.id_cross_port as id_cross_port,
         (SELECT name from aprosftthdata.onu_type where id_onu_profile_type = onu.id_onu_profile_type limit 1) as model_onu,
         r.mac,
@@ -773,7 +775,6 @@ if(isset($_REQUEST["extrair_user"])){
         pppoe.username as pppoe_user,pppoe.password as pppoe_pass,
         r.wifi_ssid,r.wifi_password,
         dmz.ipaddr as dmz_ip,
-        fowarding.external_port_from,fowarding.external_port_to,fowarding.internal_port_from,fowarding.internal_port_to,
         r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2
         
         FROM aprosftthdata.usuarios as u
@@ -783,7 +784,6 @@ if(isset($_REQUEST["extrair_user"])){
         left join aprosftthdata.olt as olt on olt.id_olt in(select distinct id_olt from aprosftthdata.onu_profile_olt where id_onu_profile = onu.id_onu_profile)
         left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
         left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
-        left join aprosftthdata.forwarding_configuration as fowarding on fowarding.id_reservation_onu = r.id_reservation_onu
         left join aprosftthdata.olt_board_ports as olt_ports on olt_ports.id_olt_board_ports = r.id_board_ports
 
         LIMIT {$limit} OFFSET {$offset}
@@ -792,12 +792,13 @@ if(isset($_REQUEST["extrair_user"])){
 
     // gerar csv de dados exspecificos da pessoa
     $arq_person = fopen("./csv/extract_user_".date("Y-m-d-H-i-s").".csv", "a");
-    fputcsv($arq_person , ["Modelo de ONU","MAC","OLT","Slot","Port","Id","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Port-External-Fowarding","Port-Internal-Fowarding","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
+    fputcsv($arq_person , ["Modelo de ONU","MAC","OLT","Slot","Port","Id","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Fowarding","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
 
     foreach($get_usuario as $u){
 
         $saida_nap = "";
         $armario = "";
+        $forwarding = "";
 
         /** saida_nap, armario */
         $get_split = $data->find(
@@ -807,15 +808,22 @@ if(isset($_REQUEST["extrair_user"])){
             left join aprosftthdata.plantel_exterior_ftth_troncales_nap as t on t.id_plantel_exterior_ftth_troncales_nap = c.id_plantel_exterior_ftth_troncales_nap
             left join aprosftthdata.plantel_exterior_ftth_armarios as a on a.id_plantel_exterior_ftth_armarios = t.id_plantel_exterior_ftth_armarios
             left join aprosftthdata.plantel_exterior_ftth_nap_salidas as n on n.id_plantel_exterior_ftth_nap_salidas = t.id_plantel_exterior_ftth_nap_salidas
-            where c.id_cross_port = {$u["id_cross_port"]}"
-        );
+            where c.id_cross_port = {$u["id_cross_port"]}
+        ");
 
         foreach($get_split as $na){
             $saida_nap = $na["salida_nap"];
             $armario = $na["armario"];
         }
 
-        fputcsv($arq_person,[$u["model_onu"],$u["mac"],$u["olt_name"],$u["slot"],$u["ports"],$u["olt_ip"],$u["nombre"],$u["apellido"],$u["direccion"],$saida_nap,$armario,$u["n_cliente"],$u["perfil"],"PPPoE_User",$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$u["external_port_from"]." - ".$u["external_port_to"],$u["internal_port_from"]." - ".$u["internal_port_to"],$u["tel_number1"],$u["tel_number2"],$u["tel_pwd1"],$u["tel_pwd2"]]);
+        /** fowarding */
+        $get_fow = $data->find("SELECT * FROM aprosftthdata.forwarding_configuration WHERE id_reservation_onu = {$u["id_reservation_onu"]} ");
+
+        foreach($get_fow as $fw){
+            $forwarding .= "IP {$fw["target_ip"]} - MASK {$fw["target_netmask"]} - FROM {$fw["external_port_from"]}:{$fw["external_port_from"]} - TO {$fw["internal_port_from"]}:{$fw["internal_port_to"]}\n";
+        }
+
+        fputcsv($arq_person,[$u["model_onu"],$u["mac"],$u["olt_name"],$u["slot"],$u["ports"],$u["olt_ip"],$u["nombre"],$u["apellido"],$u["direccion"],$saida_nap,$armario,$u["n_cliente"],$u["perfil"],$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$forwarding,$u["tel_number1"],$u["tel_pwd1"],$u["tel_number2"],$u["tel_pwd2"]]);
     }
 
     fclose($arq_person);
