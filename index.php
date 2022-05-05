@@ -813,8 +813,8 @@ if(isset($_REQUEST["extrair_user"])){
 
         if(is_array($get_split) && count($get_split) > 0){
             foreach($get_split as $na){
-                $saida_nap = $na["salida_nap"];
-                $armario = $na["armario"];
+                $saida_nap = $na["salida"];
+                $armario = $na["descripcion"];
             }
         }       
 
