@@ -16,9 +16,9 @@ $param = array(
 /** definicao de parametros de-para */
 $param_depara = array(
     "PLAN100/10" => array(
-        "172.15.0.3" => "OLT1_Int_PPP_250_271",
-        "172.15.0.4" => "OLT2_Int_PPP_251_272",
-        "172.15.0.5" => "OLT3_Int_PPP_252_273"
+        "172.15.0.3" => array("N"=>"OLT1_Int_PPP_250_271","TEL"=>"SIP_OLT1"),
+        "172.15.0.4" => array("N"=>"OLT2_Int_PPP_251_272","TEL"=>"SIP_OLT2"),
+        "172.15.0.5" => array("N"=>"OLT3_Int_PPP_252_273","TEL"=>"SIP_OLT3")
     )
 );
 /** */
@@ -620,8 +620,7 @@ if(isset($_REQUEST["importar"])){
                  * get Usuarios no CMAP
                  */
                 $get_usuario = $data->find(
-                    "SELECT 
-
+                    "SELECT
                     u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
                     onu.name as pacote,
                     olt.ip,
@@ -641,6 +640,7 @@ if(isset($_REQUEST["importar"])){
                 foreach($get_usuario as $u){
 
                     $pacote = $u["pacote"];
+                    $isTelefonia = (!empty($u["tel_number1"]) || !empty($u["tel_number2"]))? true : false;
 
                     /**
                      * Get ID Olt
@@ -655,13 +655,17 @@ if(isset($_REQUEST["importar"])){
                         if($key==$pacote){                            
                             foreach($value as $ind=>$pack){
                                 if($ind==$u["ip"]){
-                                    $pacote = $pack;
+                                    if($isTelefonia){
+                                        $pacote = $pack["TEL"];
+                                    }else{
+                                        $pacote = $pack["N"];
+                                    }
                                     break;
                                 }
                             }
                         }
                     }
-                     /** */
+                    /** */
 
                     /**
                      * Get pacote
@@ -694,15 +698,22 @@ if(isset($_REQUEST["importar"])){
                         )
                     );
                     $set_ativacao->set("servicePackageId",$pacote["content"][0]["id"]);
-                    //$set_ativacao->set("telephonies",[]);
-                    $set_ativacao->set(
-                        "telephonies",
-                        array(
-                            "password"=>$u["tel_pwd1"] ?? $u["tel_pwd2"],
-                            "telNumber"=>$u["tel_number1"] ?? $u["tel_number2"],
-                            "username"=>$u["tel_number1"] ?? $u["tel_number2"]
-                        )
-                    );
+
+                    /** verifica se possui telefonia */
+                    if($isTelefonia){
+                        $set_ativacao->set(
+                            "telephonies",
+                            array(
+                                "password"=>$u["tel_pwd1"] ?? $u["tel_pwd2"],
+                                "telNumber"=>$u["tel_number1"] ?? $u["tel_number2"],
+                                "username"=>$u["tel_number1"] ?? $u["tel_number2"]
+                            )
+                        );
+                    }else{
+                        $set_ativacao->set("telephonies",[]);
+                    }
+                    //
+                    
                     $set_ativacao->set(
                         "wifi",
                         array(
