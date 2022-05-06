@@ -776,7 +776,7 @@ if(isset($_REQUEST["extrair_user"])){
     $get_usuario = $data->find(
         "SELECT
 
-        r.id_reservation_onu,
+        r.id_reservation_onu as id_reservation_onu,
         r.id_cross_port as id_cross_port,
         (SELECT name from aprosftthdata.onu_type where id_onu_profile_type = onu.id_onu_profile_type limit 1) as model_onu,
         r.mac,
