@@ -682,7 +682,7 @@ if(isset($_REQUEST["importar"])){
                     /**
                      * API: ispmanager/activity
                      * Cadastro de ativacao
-                     * 
+                     * {"contract":"8113","oltId":1,"onuDescription":"CCTV Sa","osNumber":"8113","router":{"authentication":"AUTO","password":"cctvsa-","username":"cctvsa"},"servicePackageId":13,"telephonies":[{"password":"14124124","telNumber":"14124124","username":"14124124"}],"wifi":{"ssid2G":"BBTSALTO","password2G":"ortigoza","ssid5G":"BBTSALTO_5G","password5G":"ortigoza","wifiParameters2G":{"wifiRegion":"UNITED_STATES","wifiMode":"B_G_N","wifiChannel":"AUTO","wifiChannelWidth":"_20","wifiIndex":1,"wifiSecurityType":"WPA_WPA2_PSK","wpaVersion":"AUTO","wpaEncryption":"AES"},"wifiParameters5G":{"wifiRegion":"ARGENTINA","wifiMode":"AC","wifiChannel":"AUTO","wifiChannelWidth":"_80","wifiIndex":2,"wifiSecurityType":"WPA_WPA2_PSK","wpaVersion":"AUTO","wpaEncryption":"AES_TKIP"}}}
                      */
                     $set_ativacao = new Api($ip_host,"ispmanager/activity",$token,"POST");
                     $set_ativacao->set("contract",$u["n_cliente"]);
@@ -797,6 +797,8 @@ if(isset($_REQUEST["extrair_user"])){
         left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
         left join aprosftthdata.olt_board_ports as olt_ports on olt_ports.id_olt_board_ports = r.id_board_ports
 
+        WHERE r.id_reservation_onu is not null
+
         LIMIT {$limit} OFFSET {$offset}
         "
     );
@@ -811,30 +813,32 @@ if(isset($_REQUEST["extrair_user"])){
         $armario = "";
         $forwarding = "";
 
-        /** saida_nap, armario */
-        $get_split = $data->find(
-            "SELECT 
-            a.descripcion,n.salida
-            FROM aprosftthdata.cross_port as c
-            left join aprosftthdata.plantel_exterior_ftth_troncales_nap as t on t.id_plantel_exterior_ftth_troncales_nap = c.id_plantel_exterior_ftth_troncales_nap
-            left join aprosftthdata.plantel_exterior_ftth_armarios as a on a.id_plantel_exterior_ftth_armarios = t.id_plantel_exterior_ftth_armarios
-            left join aprosftthdata.plantel_exterior_ftth_nap_salidas as n on n.id_plantel_exterior_ftth_nap_salidas = t.id_plantel_exterior_ftth_nap_salidas
-            where c.id_cross_port = {$u["id_cross_port"]}
-        ");
+        if(intval($u["id_cross_port"]) > 0){
+            /** saida_nap, armario */
+            $get_split = $data->find(
+                "SELECT 
+                a.descripcion,n.salida
+                FROM aprosftthdata.cross_port as c
+                left join aprosftthdata.plantel_exterior_ftth_troncales_nap as t on t.id_plantel_exterior_ftth_troncales_nap = c.id_plantel_exterior_ftth_troncales_nap
+                left join aprosftthdata.plantel_exterior_ftth_armarios as a on a.id_plantel_exterior_ftth_armarios = t.id_plantel_exterior_ftth_armarios
+                left join aprosftthdata.plantel_exterior_ftth_nap_salidas as n on n.id_plantel_exterior_ftth_nap_salidas = t.id_plantel_exterior_ftth_nap_salidas
+                where c.id_cross_port = {$u["id_cross_port"]}
+            ");
 
-        if(is_array($get_split) && count($get_split) > 0){
-            foreach($get_split as $na){
-                $saida_nap = $na["salida"];
-                $armario = $na["descripcion"];
-            }
-        }       
+            if(is_array($get_split) && count($get_split) > 0){
+                foreach($get_split as $na){
+                    $saida_nap = $na["salida"];
+                    $armario = $na["descripcion"];
+                }
+            } 
+        }              
 
         /** fowarding */
         $get_fow = $data->find("SELECT * FROM aprosftthdata.forwarding_configuration WHERE id_reservation_onu = {$u["id_reservation_onu"]} ");
 
         if(is_array($get_fow) && count($get_fow) > 0){
             foreach($get_fow as $fw){
-                $forwarding .= "IP {$fw["target_ip"]} - MASK {$fw["target_netmask"]} - FROM {$fw["external_port_from"]}:{$fw["external_port_from"]} - TO {$fw["internal_port_from"]}:{$fw["internal_port_to"]} | ";
+                $forwarding .= "IP {$fw["target_ip"]} - MASK {$fw["target_netmask"]} - FROM {$fw["external_port_from"]}:{$fw["external_port_from"]} - TO {$fw["internal_port_from"]}:{$fw["internal_port_to"]} - PROTOCOL {$fw["protocol"]} | ";
             }
         }        
 
