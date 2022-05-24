@@ -747,9 +747,8 @@ if(isset($_REQUEST["extrair_client"])){
      */
     $get_usuario = $data->find(
         "SELECT
-        u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
-        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2        
-        FROM aprosftthdata.usuarios as u        
+        u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,u.telefono,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade
+        FROM aprosftthdata.usuarios as u
         left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
         LIMIT {$limit} OFFSET {$offset}
         "
@@ -760,7 +759,7 @@ if(isset($_REQUEST["extrair_client"])){
     fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
 
     foreach($get_usuario as $u){
-        fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["tel_number1"]} - {$u["tel_number2"]}",$u["cidade"],$u["direccion"],""]);
+        fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["telefono"]}",$u["cidade"],$u["direccion"],""]);
     }
 
     fclose($arq_person);
@@ -788,7 +787,8 @@ if(isset($_REQUEST["extrair_user"])){
         pppoe.username as pppoe_user,pppoe.password as pppoe_pass,
         r.wifi_ssid,r.wifi_password,
         dmz.ipaddr as dmz_ip,
-        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2
+        r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2,
+        lan.local_ip,lan.subnetmask,lan.dhcp_iprange_end,lan.dhcp_iprange_start
         
         FROM aprosftthdata.usuarios as u
         
@@ -798,6 +798,7 @@ if(isset($_REQUEST["extrair_user"])){
         left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
         left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
         left join aprosftthdata.olt_board_ports as olt_ports on olt_ports.id_olt_board_ports = r.id_board_ports
+        left join aprosftthdata.lan_configuration_onu as lan on lan.id_lan_configuration_onu = r.id_lan_configuration_onu
 
         WHERE r.id_reservation_onu is not null
 
@@ -807,13 +808,14 @@ if(isset($_REQUEST["extrair_user"])){
 
     // gerar csv de dados exspecificos da pessoa
     $arq_person = fopen("./csv/extract_user_".date("Y-m-d-H-i-s").".csv", "a");
-    fputcsv($arq_person , ["Id Onu","Modelo de ONU","MAC","IP","OLT","Slot","Port","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Fowarding","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
+    fputcsv($arq_person , ["Id Onu","Modelo de ONU","MAC","IP","OLT","Slot","Port","Nome","Sobrenome","Endereço","Saída NAP","Armário","Nr. Cliente","Perfil","PPPoE_User","PPPoE_Psswd","WIFI_SSID","WIFI_PSSWD","DMZ_IP","Fowarding","Lan","Tel_user1","Tel_Passwd1","Tel_user2","Tel_Passwd2"]);		
 
     foreach($get_usuario as $u){
 
         $saida_nap = "";
         $armario = "";
         $forwarding = "";
+        $lan = "IP: {$u["local_ip"]} - MASK: {$u["subnetmask"]} - START: {$u["dhcp_iprange_start"]} - END: {$u["dhcp_iprange_end"]}";
 
         if(intval($u["id_cross_port"]) > 0){
             /** saida_nap, armario */
