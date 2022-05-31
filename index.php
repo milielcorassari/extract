@@ -759,7 +759,7 @@ if(isset($_REQUEST["extrair_client"])){
     fputcsv($arq_person , ["nome","sobrenome","email","numero_telefone","cidade","pais","status"]);
 
     foreach($get_usuario as $u){
-        fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["telefono"]}",utf8_encode($u["cidade"]),utf8_encode($u["direccion"]),""]);
+        fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["telefono"]}",utf8_decode(utf8_encode($u["cidade"])),utf8_decode(utf8_encode($u["direccion"])),""]);
     }
 
     fclose($arq_person);
