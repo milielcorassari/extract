@@ -703,13 +703,13 @@ if(isset($_REQUEST["importar"])){
                     if($isTelefonia){
                         $set_ativacao->set(
                             "telephonies",
-                            array(
+                            [
                                 array(
                                     "password"=>$u["tel_pwd1"] ?? $u["tel_pwd2"],
                                     "telNumber"=>$u["tel_number1"] ?? $u["tel_number2"],
                                     "username"=>$u["tel_number1"] ?? $u["tel_number2"]
-                                )                                
-                            )
+                                )
+                            ]
                         );
                     }else{
                         $set_ativacao->set("telephonies",[]);
