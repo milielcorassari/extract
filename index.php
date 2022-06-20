@@ -734,7 +734,7 @@ if(isset($_REQUEST["importar"])){
                 }
             }
         }
-    }    
+    }
 }
 
 if(isset($_REQUEST["extrair_client"])){
@@ -846,7 +846,7 @@ if(isset($_REQUEST["extrair_user"])){
             }
         }        
 
-        fputcsv($arq_person,[$u["id_reservation_onu"],$u["model_onu"],$u["mac"],$u["olt_ip"],$u["olt_name"],$u["slot"],$u["ports"],$u["nombre"],$u["apellido"],$u["direccion"],$saida_nap,$armario,$u["n_cliente"],$u["perfil"],$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$forwarding,$lan,$u["tel_number1"],$u["tel_pwd1"],$u["tel_number2"],$u["tel_pwd2"]]);
+        fputcsv($arq_person,[$u["id_reservation_onu"],$u["model_onu"],$u["mac"],$u["olt_ip"],$u["olt_name"],$u["slot"],$u["ports"],$u["nombre"],$u["apellido"],utf8_decode(utf8_encode($u["direccion"])),$saida_nap,$armario,$u["n_cliente"],$u["perfil"],$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$forwarding,$lan,$u["tel_number1"],$u["tel_pwd1"],$u["tel_number2"],$u["tel_pwd2"]]);
     }
 
     fclose($arq_person);
