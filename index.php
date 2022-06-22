@@ -324,7 +324,7 @@ if(isset($_REQUEST["importar"])){
                         $name_onus = explode(",",$_REQUEST["array_onu"]);
                         $query .= "where r.mac in('".implode("','",$name_onus)."') ";
                     }else{
-                        $query .= "where = '{$onu["name"]}' ";
+                        $query .= "where r.mac = '{$onu["name"]}' ";
                     }
 
                     $get_port_input = $data->find($query);
