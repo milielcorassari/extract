@@ -331,10 +331,10 @@ if(isset($_REQUEST["importar"])){
     
                     foreach($get_port_input as $in){
 						
-                        $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName={$in["nap"]}",$token,"GET");
+                        $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
                         $cto = $get_cto->conecta();
 						
-						if(count($cto) && isset($cto[0]["splitters"])){
+						if(count($cto)>0 && isset($cto[0]["splitters"])){
 							
 							$cto = $cto[0];
 							$existe_splitter = false;	
