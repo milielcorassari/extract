@@ -702,6 +702,8 @@ if(isset($_REQUEST["importar"])){
 
                     /**
                      * Get Service
+                     * C/Router {"id":6,"name":"Olt3_int_PPP_252","vlanId":4,"vlanName":null,"maxUpstream":1031616,"maxDownstream":2621440,"ports":[1,2,3,4],"bridgeService":{"enabled":false},"routerService":{"wan":{"wanType":"PPPOE","addressProtocolCombination":"IPv4_AND_IPv6","dnsProxyAddressProtocol":"DISABLED","dnsList":[],"getAddress":true,"getPrefix":false},"lan":{"lanIpAddress":"192.168.1.1","networkPrefixSize":24,"dhcpEnabled":true,"dhcpServerStart":"192.168.1.2","dhcpServerEnd":"192.168.1.254","leasedTime":86400,"dnsProxyEnabled":true},"wifi":{"wifi2G":{"wifiRegion":"BRAZIL","wifiMode":"B_G_N","wifiChannel":"AUTO","wifiChannelWidth":"_20","wifiIndex":1,"wifiSecurityType":"WPA_WPA2_PSK","wpaVersion":"AUTO","wpaEncryption":"AES"},"wifi5G":{"wifiRegion":"BRAZIL","wifiMode":"AC","wifiChannel":"AUTO","wifiChannelWidth":"_80","wifiIndex":2,"wifiSecurityType":"WPA_WPA2_PSK","wpaVersion":"AUTO","wpaEncryption":"AES_TKIP"}}}}
+                     * S/Router {"id":4,"name":"Olt3_Bridge_252","vlanId":4,"vlanName":null,"maxUpstream":1031616,"maxDownstream":2621440,"ports":[1,2,3,4],"bridgeService":{"enabled":true},"routerService":null}
                      */
                     $get_service = new Api($ip_host,"ispmanager/internet-service/{$pacote["content"][0]["internetServiceId"]}",$token,"GET");
                     $servico = $get_service->conecta();
@@ -715,19 +717,35 @@ if(isset($_REQUEST["importar"])){
                     $set_ativacao->set("contract",$u["n_cliente"]);
                     $set_ativacao->set("oltId",$olt["content"][0]["id"]); // mudar aqui para realizar testes sem estar na vpn do cliente                    
                     $set_ativacao->set("onuDescription","{$u["nombre"]} {$u["apellido"]}"); // truncar para 30 caracter max
-                    $set_ativacao->set("osNumber",$u["n_cliente"]);
-                    $set_ativacao->set(
-                        "router",
-                        array(
+                    $set_ativacao->set("osNumber",null); // verificar no sistema do cm para configurar sempre automatico
+
+                    $router = null;
+                    $wifi = null;
+
+                    if(!$servico["bridgeService"]["enabled"]){
+                        /** verifica se possui router */
+                        $router = array(
                             "authentication"=>"AUTO",
                             "password"=>$u["pppoe_pass"],
                             "username"=>$u["pppoe_user"]
-                        )
-                    );
+                        );
+
+                        $wifi = array(
+                            "ssid2G"=>$u["wifi_ssid"],
+                            "password2G"=>$u["wifi_password"],
+                            "ssid5G"=>"{$u["wifi_ssid"]}_5G",
+                            "password5G"=>$u["wifi_password"],
+                            "wifiParameters2G"=>$servico["routerService"]["wifi"]["wifi2G"],
+                            "wifiParameters5G"=>$servico["routerService"]["wifi"]["wifi5G"]
+                        );
+                    }
+
+                    $set_ativacao->set("router",$router);
+                    $set_ativacao->set("wifi", $wifi);
                     $set_ativacao->set("servicePackageId",$pacote["content"][0]["id"]);
 
-                    /** verifica se possui telefonia */
                     if($isTelefonia){
+                        /** verifica se possui telefonia */
                         $set_ativacao->set(
                             "telephonies",
                             [
@@ -742,18 +760,7 @@ if(isset($_REQUEST["importar"])){
                         $set_ativacao->set("telephonies",[]);
                     }
                     //
-                    
-                    $set_ativacao->set(
-                        "wifi",
-                        array(
-                            "ssid2G"=>$u["wifi_ssid"],
-                            "password2G"=>$u["wifi_password"],
-                            "ssid5G"=>"{$u["wifi_ssid"]}_5G",
-                            "password5G"=>$u["wifi_password"],
-                            "wifiParameters2G"=>$servico["routerService"]["wifi"]["wifi2G"],
-                            "wifiParameters5G"=>$servico["routerService"]["wifi"]["wifi5G"]
-                        )
-                    );
+
                     $response = $set_ativacao->conecta();
 
                     $response["DATA"] = $set_ativacao->get();
