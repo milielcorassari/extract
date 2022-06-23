@@ -716,7 +716,7 @@ if(isset($_REQUEST["importar"])){
                     $set_ativacao = new Api($ip_host,"ispmanager/activity",$token,"POST");
                     $set_ativacao->set("contract",$u["n_cliente"]);
                     $set_ativacao->set("oltId",$olt["content"][0]["id"]); // mudar aqui para realizar testes sem estar na vpn do cliente                    
-                    $set_ativacao->set("onuDescription","{$u["nombre"]} {$u["apellido"]}"); // truncar para 30 caracter max
+                    $set_ativacao->set("onuDescription",substr("{$u["nombre"]} {$u["apellido"]}",0,30)); // truncar para 30 caracter max
                     $set_ativacao->set("osNumber",null); // verificar no sistema do cm para configurar sempre automatico
 
                     $router = null;
