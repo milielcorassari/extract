@@ -334,7 +334,7 @@ if(isset($_REQUEST["importar"])){
                         $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
                         $cto = $get_cto->conecta();
 						
-						if(count($cto)>0 && isset($cto[0]["splitters"])){
+						if(count($cto) > 0 && isset($cto[0]["splitters"])){
 							
 							$cto = $cto[0];
 							$existe_splitter = false;	
@@ -383,7 +383,7 @@ if(isset($_REQUEST["importar"])){
 								$response["DATA"]["Splitter_CM"] = "Não encontrado";
 							}
 						}else{
-							$response["DATA"]["CTO_CM"] = "CTO: {$in["nap"]} - Não encontrada";
+							$response["DATA"]["CTO_CM"] = "CTO: {$in["nap"]} - urlencode: ".htmlentities(urlencode($in["nap"]))." - Não encontrada";
 						}
                     }
 					
@@ -648,18 +648,20 @@ if(isset($_REQUEST["importar"])){
                  */
                 $get_usuario = $data->find(
                     "SELECT
-                    u.nombre,u.apellido,u.n_cliente,u.email,u.direccion,(select nombre from aprosftthdata.ciudades where id_ciudades = u.id_ciudad) as cidade,
+                    u.nombre,u.apellido,u.n_cliente,
                     onu.name as pacote,
                     olt.ip,
-                    r.wifi_ssid,r.wifi_password,r.wlan_channel,r.wlan_mode, r.type_network,r.wlan_frequency,r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2,
+                    r.wifi_ssid,r.wifi_password,r.tel_number1,r.tel_number2,r.tel_pwd1,r.tel_pwd2,
                     pppoe.username as pppoe_user,pppoe.password as pppoe_pass
                     
                     FROM aprosftthdata.usuarios as u
                     
                     left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
-                    left join aprosftthdata.onu_profile as onu on onu.id_onu_profile = r.id_onu_profile
-                    left join aprosftthdata.olt as olt on olt.id_olt in(select distinct id_olt from aprosftthdata.onu_profile_olt where id_onu_profile = onu.id_onu_profile)
+                    left join aprosftthdata.olt as olt on olt.id_olt = r.id_olt
                     left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
+
+                    WHERE r.id_reservation_onu is not null
+                    
                     LIMIT {$limit} OFFSET {$offset}
                     "
                 );
@@ -813,7 +815,7 @@ if(isset($_REQUEST["extrair_user"])){
 
         r.id_reservation_onu as id_reservation_onu,
         r.id_cross_port as id_cross_port,
-        (SELECT name from aprosftthdata.onu_type where id_onu_profile_type = onu.id_onu_profile_type limit 1) as model_onu,
+        (SELECT name from aprosftthdata.onu_type where id_onu_type = (SELECT id_onu_profile_type FROM aprosftthdata.onu_profile where id_onu_profile = r.id_onu_profile)) as model_onu,
         r.mac,
         olt.ip as olt_ip, olt.name as olt_name,olt.id_olt,r.cardPon as slot,r.portPon as ports,
         u.nombre,u.apellido,u.direccion,
@@ -825,10 +827,10 @@ if(isset($_REQUEST["extrair_user"])){
         lan.local_ip,lan.subnetmask,lan.dhcp_iprange_end,lan.dhcp_iprange_start
         
         FROM aprosftthdata.usuarios as u
-        
-        left join aprosftthdata.reservation_onu AS r on r.id_usuarios = u.id_usuarios
+
+        left join aprosftthdata.reservation_onu as r on r.id_usuarios = u.id_usuarios
         left join aprosftthdata.onu_profile as onu on onu.id_onu_profile = r.id_onu_profile
-        left join aprosftthdata.olt as olt on olt.id_olt in(select distinct id_olt from aprosftthdata.onu_profile_olt where id_onu_profile = onu.id_onu_profile)
+        left join aprosftthdata.olt as olt on olt.id_olt = r.id_olt
         left join aprosftthdata.reservation_pppoe as pppoe on pppoe.id_usuario = r.id_usuarios
         left join aprosftthdata.dmz_configuration as dmz on dmz.id_reservation_onu = r.id_reservation_onu
         left join aprosftthdata.olt_board_ports as olt_ports on olt_ports.id_olt_board_ports = r.id_board_ports
