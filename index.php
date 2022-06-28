@@ -296,6 +296,7 @@ if(isset($_REQUEST["importar"])){
             // conectar fibra ONU x CTO
             if($_REQUEST["dados"]=="fibra"){
 
+                $response = array();
                 $get_onus = new Api($ip_host,"ospmanager/projects/{$existe_project}/onus",$token,"GET");
                 $response_onus = $get_onus->conecta();
                 $response_onus = array_slice($response_onus,$offset,$limit); // controla o limit offset do array da ONUs
@@ -439,11 +440,10 @@ if(isset($_REQUEST["importar"])){
                     )); // pontos de longitude e latitude da CTO e ONU
 
                     if(!empty($points)){
-                        $response = $set_fiber->conecta();
-                        $response["RESPONSE"] = $response;
+                        $response["RESPONSE"] = $set_fiber->conecta();
                     }
 					
-                    $response["DATA"]["PAYLOAD"] = $set_fiber->get();
+                    $response["PAYLOAD"] = $set_fiber->get();
                     $response["DATA"]["ONU_CM"] = $onu["name"];
                     $info["FIBERs"][] = $response;
                 }                
