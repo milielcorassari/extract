@@ -328,68 +328,82 @@ if(isset($_REQUEST["importar"])){
                     }
 
                     $get_port_input = $data->find($query);
-    
-                    foreach($get_port_input as $in){
-						
-                        $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
-                        $cto = $get_cto->conecta();
-						
-						if(count($cto) > 0 && isset($cto[0]["splitters"])){
-							
-							$cto = $cto[0];
-							$existe_splitter = false;	
-							$response["DATA"]["CTO_CM"] = $cto;
-							
-							foreach($cto["splitters"] as $sp){
-                            
-								if($sp["name"] == $in["splliter"]){    
-								
-									$existe_splitter = true;
-									$existe_ports = false;
-									
-									foreach($sp["ports"] as $pt){
-
-										if(strpos($pt["name"], "output port ".(intval($in["saida_nap"]) - 1))){
-											$existe_ports = true;
-											
-											//get port
-											$ports[] = array(
-												"connector"=>false,
-												"fusion"=>false,
-												"id"=>null,
-												"name"=>$pt["name"],
-												"portConnected"=>null,
-												"reservationCode"=>null,
-												"status"=>"AVAILABLE",
-												"type"=>"INPUT",
-												"networkComponent"=>null
-											);
-											$points = array(
-												"latitude"=>floatval($cto["latitude"]),
-												"longitude"=>floatval($cto["longitude"])
-											);
-											$port_input = $pt["id"];
-											break;
-										}
-									}
-									
-									if(!$existe_ports){
-										$response["DATA"]["Ports_CM"]="Não encontrado";
-									}
-								}
-							}
-							
-							if(!$existe_splitter){
-								$response["DATA"]["Splitter_CM"] = "Não encontrado";
-							}
-						}else{
-							$response["DATA"]["CTO_CM"] = "CTO: {$in["nap"]} - urlencode: ".htmlentities(urlencode($in["nap"]))." - Não encontrada";
-						}
-                    }
 					
-					if(count($get_port_input) == 0){
-						$response["DATA"]["query_reservation_onu_MAP"] = "Não executada";
-					}
+                    /** verifica se foi encontrado dados no MAP */
+					if(count($get_port_input) > 0){
+						foreach($get_port_input as $in){
+						
+                            $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
+                            $cto = $get_cto->conecta();
+                            
+                            if(count($cto) > 0 && isset($cto[0]["splitters"])){
+                                
+                                $cto = $cto[0];
+                                $existe_splitter = false;	
+                                $response["DATA"]["CTO_CM"] = $cto;
+                                
+                                foreach($cto["splitters"] as $sp){
+                                
+                                    if($sp["name"] == $in["splliter"]){    
+                                    
+                                        $existe_splitter = true;
+                                        $existe_ports = false;
+                                        
+                                        foreach($sp["ports"] as $pt){
+    
+                                            if(strpos($pt["name"], "output port ".(intval($in["saida_nap"]) - 1))){
+                                                $existe_ports = true;
+                                                
+                                                //get port
+                                                $ports[] = array(
+                                                    "connector"=>false,
+                                                    "fusion"=>false,
+                                                    "id"=>null,
+                                                    "name"=>$pt["name"],
+                                                    "portConnected"=>null,
+                                                    "reservationCode"=>null,
+                                                    "status"=>"AVAILABLE",
+                                                    "type"=>"INPUT",
+                                                    "networkComponent"=>null
+                                                );
+                                                $points = array(
+                                                    "latitude"=>floatval($cto["latitude"]),
+                                                    "longitude"=>floatval($cto["longitude"])
+                                                );
+                                                $port_input = $pt["id"];
+                                                break;
+                                            }
+                                        }
+                                        
+                                        if(!$existe_ports){
+                                            $response["DATA"]["Ports_CM"]= array(
+                                                "error"=>"Não encontrado",
+                                                "data"=>$sp["ports"]
+                                            );
+                                        }
+                                    }
+                                }
+                                
+                                if(!$existe_splitter){
+                                    $response["DATA"]["Splitter_CM"] = array(
+                                        "error"=>"Não encontrado",
+                                        "data"=>$cto["splitters"]
+                                    );
+                                }
+                            }else{
+                                $response["DATA"]["CTO_CM"] = array(
+                                    "error"=>"CTO MAP: {$in["nap"]} - urlencode: ".htmlentities(urlencode($in["nap"]))." - Não encontrada",
+                                    "data"=>$cto
+                                );
+                            }
+                        }
+					}else{
+                        $response["DATA"]["query_reservation_onu_MAP"] = array(
+                            "error"=>"Não executada",
+                            "data"=>$get_port_input,
+                            "query"=>$query
+                        );
+                    }
 
                     $ports[] = array(
                         "connector"=>false,
@@ -426,6 +440,7 @@ if(isset($_REQUEST["importar"])){
 
                     if(!empty($points)){
                         $response = $set_fiber->conecta();
+                        $response["RESPONSE"] = $response;
                     }
 					
                     $response["DATA"]["PAYLOAD"] = $set_fiber->get();
