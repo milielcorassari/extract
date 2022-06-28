@@ -332,11 +332,12 @@ if(isset($_REQUEST["importar"])){
 					
                     /** verifica se foi encontrado dados no MAP */
 					if(count($get_port_input) > 0){
+						
 						foreach($get_port_input as $in){
 						
                             $get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
                             $cto = $get_cto->conecta();
-                            
+							
                             if(count($cto) > 0 && isset($cto[0]["splitters"])){
                                 
                                 $cto = $cto[0];
@@ -378,7 +379,7 @@ if(isset($_REQUEST["importar"])){
                                         
                                         if(!$existe_ports){
                                             $response["DATA"]["Ports_CM"]= array(
-                                                "error"=>"Não encontrado",
+                                                "error"=>"Ports MAP 'output port ".(intval($in["saida_nap"]) - 1)."' - Não encontrado",
                                                 "data"=>$sp["ports"]
                                             );
                                         }
@@ -387,7 +388,7 @@ if(isset($_REQUEST["importar"])){
                                 
                                 if(!$existe_splitter){
                                     $response["DATA"]["Splitter_CM"] = array(
-                                        "error"=>"Não encontrado",
+                                        "error"=>"Splitter MAP: {$in["splliter"]} - Não encontrado",
                                         "data"=>$cto["splitters"]
                                     );
                                 }
