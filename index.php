@@ -329,6 +329,14 @@ if(isset($_REQUEST["importar"])){
                     }
 
                     $get_port_input = $data->find($query);
+
+                    $response["DATA"]["ONU_CM"] = array(
+                        "data"=>$onu
+                    );
+                    $response["DATA"]["query_reservation_onu_MAP"] = array(
+                        "data"=>$get_port_input,
+                        "query"=>$query
+                    );
 					
                     /** verifica se foi encontrado dados no MAP */
 					if(count($get_port_input) > 0){
@@ -341,8 +349,11 @@ if(isset($_REQUEST["importar"])){
                             if(count($cto) > 0 && isset($cto[0]["splitters"])){
                                 
                                 $cto = $cto[0];
-                                $existe_splitter = false;	
-                                $response["DATA"]["CTO_CM"] = $cto;
+                                $existe_splitter = false;
+
+                                $response["DATA"]["CTO_CM"] = array(
+                                    "data"=>$cto
+                                );
                                 
                                 foreach($cto["splitters"] as $sp){
                                 
@@ -350,11 +361,19 @@ if(isset($_REQUEST["importar"])){
                                     
                                         $existe_splitter = true;
                                         $existe_ports = false;
+
+                                        $response["DATA"]["SPLITTER_CM"] = array(
+                                            "data"=>$sp
+                                        );
                                         
                                         foreach($sp["ports"] as $pt){
     
                                             if(strpos($pt["name"], "output port ".(intval($in["saida_nap"]) - 1))){
                                                 $existe_ports = true;
+
+                                                $response["DATA"]["PORT_CM"] = array(
+                                                    "data"=>$pt
+                                                );
                                                 
                                                 //get port
                                                 $ports[] = array(
@@ -378,7 +397,7 @@ if(isset($_REQUEST["importar"])){
                                         }
                                         
                                         if(!$existe_ports){
-                                            $response["DATA"]["Ports_CM"]= array(
+                                            $response["DATA"]["PORT_CM"]= array(
                                                 "error"=>"Ports MAP 'output port ".(intval($in["saida_nap"]) - 1)."' - Não encontrado",
                                                 "data"=>$sp["ports"]
                                             );
@@ -387,7 +406,7 @@ if(isset($_REQUEST["importar"])){
                                 }
                                 
                                 if(!$existe_splitter){
-                                    $response["DATA"]["Splitter_CM"] = array(
+                                    $response["DATA"]["SPLITTER_CM"] = array(
                                         "error"=>"Splitter MAP: {$in["splliter"]} - Não encontrado",
                                         "data"=>$cto["splitters"]
                                     );
@@ -441,11 +460,11 @@ if(isset($_REQUEST["importar"])){
                     )); // pontos de longitude e latitude da CTO e ONU
 
                     if(!empty($points)){
-                        $response["RESPONSE"] = $set_fiber->conecta();
+                        $response["RESPONSE"] = array(
+                            "data"=> $set_fiber->conecta(),
+                            "payload"=> $set_fiber->get()
+                        );
                     }
-					
-                    $response["PAYLOAD"] = $set_fiber->get();
-                    $response["DATA"]["ONU_CM"] = $onu["name"];
                     $info["FIBERs"][] = $response;
                 }                
             }
