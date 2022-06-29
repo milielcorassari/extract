@@ -466,7 +466,7 @@ if(isset($_REQUEST["importar"])){
                         );
                     }
                     $info["FIBERs"][] = $response;
-                }                
+                }
             }
 
             // Dados VLANs e Servicos
@@ -837,6 +837,52 @@ if(isset($_REQUEST["extrair_client"])){
     /***************************************** */
 }
 
+if(isset($_REQUEST["extrair_fibra"])){
+
+    $data = new Operaction($param);
+
+    /** Extrai dados de cliente do CMAP */
+    /**
+     * get Usuarios no CMAP
+     */
+    $get_data = $data->find(
+        "SELECT 
+
+        (SELECT concat('NOME:',nombre,' | APELIDO:',apellido,' | ENDERECO:',direccion,' | CLIENTE:',n_cliente) FROM aprosftthdata.usuarios where id_usuarios = r.id_usuarios) as usuario,
+        n.codigo as nap,
+        n_saida.salida as saida_nap,
+        s.codigo as splitter,
+        s.salidas as splitter_portas,
+        s.codigo_troncal_nap as troncal_nap_spliter,
+        s_saida.salida as saida_splitter,
+        t.codigo as troncal_nap,
+        r.mac as onu_mac
+        
+        from aprosftthdata.reservation_onu as r
+        
+        left join aprosftthdata.cross_port as p ON p.id_cross_port = r.id_cross_port
+        left join aprosftthdata.plantel_exterior_ftth_splitter_salidas as s_saida ON s_saida.id_plantel_exterior_ftth_splitter_salidas = p.id_splitter_salidas
+        left join aprosftthdata.plantel_exterior_ftth_splitter as s ON s.id_plantel_exterior_ftth_splitter = s_saida.id_plantel_exterior_ftth_splitter
+        left join aprosftthdata.plantel_exterior_ftth_troncales_nap as t ON t.id_plantel_exterior_ftth_troncales_nap = p.id_plantel_exterior_ftth_troncales_nap
+        left join aprosftthdata.plantel_exterior_ftth_nap_salidas as n_saida ON n_saida.id_plantel_exterior_ftth_nap_salidas = t.id_plantel_exterior_ftth_nap_salidas
+        left join aprosftthdata.plantel_exterior_ftth_nap as n ON n.id_plantel_exterior_ftth_nap = n_saida.id_plantel_exterior_ftth_nap
+
+        LIMIT {$limit} OFFSET {$offset}
+        "
+    );
+
+    // gerar csv de dados exspecificos da pessoa
+    $arq_person = fopen("./csv/extract_fibra_".date("Y-m-d-H-i-s").".csv", "a");
+    fputcsv($arq_person , ["usuario","nap","saida_nap","splitter","splitter_portas","troncal_nap_spliter","saida_splitter","troncal_nap","onu_mac"]);
+
+    foreach($get_data as $u){
+        fputcsv($arq_person,[utf8_decode(utf8_encode($u["usuario"])),$u["nap"],$u["saida_nap"],$u["splitter"],$u["splitter_portas"],$u["troncal_nap_spliter"],$u["saida_splitter"],$u["troncal_nap"],$u["onu_mac"]]);
+    }
+
+    fclose($arq_person);
+    /***************************************** */
+}
+
 if(isset($_REQUEST["extrair_user"])){
 
     $data = new Operaction($param);
@@ -1023,6 +1069,7 @@ fclose($fp);
             <td><button type="submit" name="importar">IMPORTAR DADOS</button></td>
             <td><button type="submit" name="extrair_client">EXTRAIR DADOS CLIENTE</button></td>
             <td><button type="submit" name="extrair_user">EXTRAIR DADOS USUARIO</button></td>
+            <td><button type="submit" name="extrair_fibra">EXTRAIR DADOS FIBRA - ONU/CTO</button></td>
         </tr>
     </table>
 </form>
