@@ -39,7 +39,7 @@ if(isset($_REQUEST["importar"])){
     }
 
     if(!$existe_project){
-        $info["WARNING"][] = "Cadastre primeiro um projeto para realizar a importação.";
+        $info["WARNING"][] = "Não foi possivel realizar a importação de dados no CM.";
         $info["WARNING"][] = $project_get;
     }else{
         $info["Project"] = $project_get["items"][0];
@@ -833,6 +833,8 @@ if(isset($_REQUEST["extrair_client"])){
         fputcsv($arq_person,[$u["nombre"],$u["apellido"],$u["email"],"{$u["telefono"]}",utf8_decode(utf8_encode($u["cidade"])),utf8_decode(utf8_encode($u["direccion"])),""]);
     }
 
+    $info["extract_client_cmap"] = "Extração efetuada, verifique o arquivo: './csv/extract_client_".date("Y-m-d-H-i-s").".csv'";
+
     fclose($arq_person);
     /***************************************** */
 }
@@ -841,9 +843,9 @@ if(isset($_REQUEST["extrair_fibra"])){
 
     $data = new Operaction($param);
 
-    /** Extrai dados de cliente do CMAP */
+    /** Extrai dados de ONUs do CMAP */
     /**
-     * get Usuarios no CMAP
+     * get data no CMAP
      */
     $get_data = $data->find(
         "SELECT 
@@ -871,7 +873,7 @@ if(isset($_REQUEST["extrair_fibra"])){
         "
     );
 
-    // gerar csv de dados exspecificos da pessoa
+    // gerar csv de dados exspecificos
     $arq_person = fopen("./csv/extract_fibra_".date("Y-m-d-H-i-s").".csv", "a");
     fputcsv($arq_person , ["usuario","nap","saida_nap","splitter","splitter_portas","troncal_nap_spliter","saida_splitter","troncal_nap","onu_mac"]);
 
@@ -879,8 +881,56 @@ if(isset($_REQUEST["extrair_fibra"])){
         fputcsv($arq_person,[utf8_decode(utf8_encode($u["usuario"])),$u["nap"],$u["saida_nap"],$u["splitter"],$u["splitter_portas"],$u["troncal_nap_spliter"],$u["saida_splitter"],$u["troncal_nap"],$u["onu_mac"]]);
     }
 
+    $info["extract_onus_cmap"] = "Extração efetuada, verifique o arquivo: './csv/extract_fibra_".date("Y-m-d-H-i-s").".csv'";
+
     fclose($arq_person);
     /***************************************** */
+
+    /** Extração de dados da ONU no CM */
+    $token = $_REQUEST["token"];
+    $ip_host = $_REQUEST["ip_host"];
+    $project = new Api($ip_host,"ospmanager/projects",$token,"GET");
+    $project_get = $project->conecta();
+    $existe_project = false;
+
+    if(isset($project_get["items"])){
+        foreach($project_get["items"] as $x){
+            $existe_project = $x["id"];
+            break;
+        }
+    }
+
+    if(!$existe_project){
+        $info["WARNING"][] = "Não foi possivel realizar a extracao de dados no CM.";
+        $info["WARNING"][] = $project_get;
+    }else{
+        $get_onus = new Api($ip_host,"ospmanager/projects/{$existe_project}/onus",$token,"GET");
+        $response_onus = $get_onus->conecta();
+        $response_onus = array_slice($response_onus,$offset,$limit); // controla o limit offset do array da ONUs
+
+        // gerar csv de dados exspecificos
+        $arq_person = fopen("./csv/extract_onus_cm_".date("Y-m-d-H-i-s").".csv", "a");
+
+        foreach($response_onus as $key=>$onu){
+            /** ONUs */
+            $onu["ports"] = json_encode($onu["ports"]);
+            $onu["sensors"] = json_encode($onu["sensors"]);
+
+            if($key == 0){
+                fputcsv($arq_person , array_keys($onu));
+            }        
+
+            //$get_cto = new Api($ip_host,"ospmanager/projects/{$existe_project}/ctos?CTOName=".htmlentities(urlencode($in["nap"])),$token,"GET");
+            //$cto = $get_cto->conecta();
+
+            fputcsv($arq_person , array_values($onu));
+        }
+
+        $info["extract_onus_cm"] = "Extração efetuada, verifique o arquivo: './csv/extract_onus_cm_".date("Y-m-d-H-i-s").".csv'";
+
+        fclose($arq_person);
+        /**************************************** */
+    }    
 }
 
 if(isset($_REQUEST["extrair_user"])){
@@ -965,6 +1015,8 @@ if(isset($_REQUEST["extrair_user"])){
 
         fputcsv($arq_person,[$u["id_reservation_onu"],$u["model_onu"],$u["mac"],$u["olt_ip"],$u["olt_name"],$u["slot"],$u["ports"],$u["nombre"],$u["apellido"],utf8_decode(utf8_encode($u["direccion"])),$saida_nap,$armario,$u["n_cliente"],$u["perfil"],$u["pppoe_user"],$u["pppoe_pass"],$u["wifi_ssid"],$u["wifi_password"],$u["dmz_ip"],$forwarding,$lan,$u["tel_number1"],$u["tel_pwd1"],$u["tel_number2"],$u["tel_pwd2"]]);
     }
+
+    $info["extract_user_cmap"] = "Extração efetuada, verifique o arquivo: './csv/extract_user_".date("Y-m-d-H-i-s").".csv'";
 
     fclose($arq_person);
     /***************************** */
